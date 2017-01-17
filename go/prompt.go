@@ -7,8 +7,8 @@ import(
 
 func main() {
 	// Print version
-	fmt.Println("Lispy Version 0.0.0.0.1\n")
-	fmt.Println("Press Ctrl+c to Exit\n")
+	fmt.Println("Lispy Version 0.0.0.0.1")
+	fmt.Println("Press Ctrl+c to Exit")
 	rl, err := readline.New("lispy> ")
 	if err != nil {
 		panic(err)
