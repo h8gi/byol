@@ -2,26 +2,25 @@ package main
 
 import(
 	"fmt"
-	"os"
-	"bufio"
+	"github.com/chzyer/readline"
 )
 
 func main() {
 	// Print version
 	fmt.Println("Lispy Version 0.0.0.0.1\n")
 	fmt.Println("Press Ctrl+c to Exit\n")
-	reader := bufio.NewReaderSize(os.Stdin, 2048)
+	rl, err := readline.New("lispy> ")
+	if err != nil {
+		panic(err)
+	}
+	
 	for {
-		// output our prompt
-		fmt.Print("lispy> ")
-
-		// read input
-		line, _, err := reader.ReadLine()
+		line, err := rl.Readline()
 		if err != nil {
-			fmt.Println(err)
+			break
 		}
-
+		
 		// display innput
-		fmt.Println(string(line))
+		fmt.Println(line)
 	}
 }
