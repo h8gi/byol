@@ -22,6 +22,14 @@ type Token struct {
 
 type Any interface{}
 
+// Character check
+func IsHead(r rune) bool {
+	return strings.ContainsRune("!$%&*/:<=>?^_~", r) || unicode.IsLetter(r)
+}
+func IsSucc(r rune) bool {
+	return IsHead(r) || unicode.IsDigit(r) || strings.ContainsRune("+-.@", r)
+}
+
 // SkipSpaces consume spaces
 func (lx *Lexer) SkipSpaces() error {
 	for {
@@ -68,9 +76,7 @@ func (lx *Lexer) ReadNumber() (Token, error) {
 }
 
 func (lx *Lexer) ReadSymbol() (Token, error) {
-	s, size, err := lx.ReadWhile(func(r rune) bool {
-		return !unicode.IsSpace(r) && !unicode.IsDigit(r) && r != '(' && r != ')'
-	})
+	s, size, err := lx.ReadWhile(unicode.IsLetter)
 	// EOF
 	if err != nil && size == 0 {
 		return Token{kind: "eof", text: "EOF"}, err
@@ -93,6 +99,8 @@ func (lx *Lexer) ReadToken() (Token, error) {
 		token = Token{kind: "open", text: "("}
 	case r == ')':
 		token = Token{kind: "close", text: ")"}
+	case r == '\'':
+		token = Token{kind: "quote", text: "'"}
 	default:
 		lx.UnreadRune()
 		token, _ = lx.ReadSymbol()
@@ -101,7 +109,7 @@ func (lx *Lexer) ReadToken() (Token, error) {
 }
 
 func main() {
-	lx := Lexer{strings.NewReader("(12 3012 31 21 3 foo a() foo")}
+	lx := Lexer{strings.NewReader("(12 3012 31 21 3 foo a() foo'")}
 	for {
 		token, err := lx.ReadToken()
 		fmt.Println(token)
