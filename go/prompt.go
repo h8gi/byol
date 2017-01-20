@@ -1,6 +1,6 @@
 package main
 
-import(
+import (
 	"fmt"
 	"github.com/chzyer/readline"
 )
@@ -13,13 +13,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	for {
 		line, err := rl.Readline()
 		if err != nil {
 			break
 		}
-		
+
 		// display innput
 		fmt.Println(line)
 	}
