@@ -1,25 +1,24 @@
-package main
+package lispy
 
 import (
 	"bufio"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"unicode"
 )
 
 // Lexer
 type Lexer struct {
-	io.RuneScanner
+	reader io.RuneScanner
+	token  Token
 }
 
 // Token
 type Token struct {
-	kind  int
-	text  string
-	value Any
+	kind int
+	text string
 }
 
 const (
@@ -63,19 +62,17 @@ func (t Token) String() string {
 	return fmt.Sprintf("%s: %s", tokenstring[t.kind], t.text)
 }
 
-type Any interface{}
-
 // SkipSpaces consume spaces
 // error is io.EOF
 func (lx *Lexer) SkipSpaces() error {
 	for {
-		r, _, err := lx.ReadRune()
+		r, _, err := lx.reader.ReadRune()
 		// EOF check
 		if err != nil {
 			return err
 		}
 		if !unicode.IsSpace(r) {
-			lx.UnreadRune()
+			lx.reader.UnreadRune()
 			return nil
 		}
 	}
@@ -86,14 +83,14 @@ func (lx *Lexer) SkipSpaces() error {
 func (lx *Lexer) ReadWhile(pred func(rune) bool) (s string, size int, err error) {
 	rs := make([]rune, 0)
 	for {
-		r, _, eof := lx.ReadRune()
+		r, _, eof := lx.reader.ReadRune()
 		// EOF check
 		if eof != nil {
 			return string(rs), len(rs), eof
 		}
 		// pred fail
 		if !pred(r) {
-			lx.UnreadRune()
+			lx.reader.UnreadRune()
 			return string(rs), len(rs), nil
 		}
 		rs = append(rs, r)
@@ -108,18 +105,24 @@ func (lx *Lexer) ReadNumber() (Token, error) {
 	if err != nil && size == 0 {
 		return Token{kind: EOF}, err
 	}
-	num, err := strconv.Atoi(s)
-	if err != nil {
-		return Token{kind: Error, text: s}, fmt.Errorf("lexer: Illegal Number", s)
-	}
-	return Token{kind: Number, text: s, value: num}, nil
+
+	return Token{kind: Number, text: s}, nil
 }
 
-func (lx *Lexer) ReadIdent(head rune) (Token, error) {
-	s, _, err := lx.ReadWhile(IsIdentSucc)
-	// EOF
+// Read Identifier
+func (lx *Lexer) ReadIdent() (Token, error) {
+	head, _, err := lx.reader.ReadRune()
+	if err != nil {
+		return Token{kind: EOF}, err
+	}
+	if !IsIdentHead(head) {
+		return Token{kind: Error}, fmt.Errorf("lexer: Illegal identifier %s", string(head))
+	}
+
+	// Ignore EOF
+	s, _, _ := lx.ReadWhile(IsIdentSucc)
 	s = string(head) + s
-	return Token{kind: Ident, text: s}, err
+	return Token{kind: Ident, text: s}, nil
 }
 
 // Ident character
@@ -130,16 +133,42 @@ func IsIdentSucc(r rune) bool {
 	return IsIdentHead(r) || unicode.IsDigit(r) || strings.ContainsRune("+-.@", r)
 }
 
+// error: EOF or Illegal dot
 func (lx *Lexer) ReadDot() (Token, error) {
 	s, size, err := lx.ReadWhile(func(r rune) bool { return r == '.' })
 	if size == 2 {
-		return Token{kind: Ident, text: "..."}, err
+		return Token{kind: Ident, text: "..."}, nil
 	} else if size == 0 {
-		return Token{kind: Dot, text: "."}, err
+		return Token{kind: Dot, text: "."}, nil
 	} else {
 		err = fmt.Errorf("lexer: Illegal dot before %s", s)
 		return Token{kind: Error}, err
 	}
+}
+
+func (lx *Lexer) ReadSharp() (Token, error) {
+	var token Token
+	r, _, err := lx.reader.ReadRune()
+	if err != nil { // # precede EOF
+		return Token{kind: Error}, fmt.Errorf("lexer: # precede EOF")
+	}
+	switch {
+	case r == '(':
+		token = Token{kind: OpenVec, text: "#("}
+	case r == 't' || r == 'f':
+		token = Token{kind: Boolean, text: string([]rune{'#', r})}
+	case r == '\\':
+		token, err = lx.ReadIdent()
+		if len(token.text) == 1 || token.text == "newline" || token.text == "space" {
+			token.kind = Char
+		} else {
+			token.kind = Error
+			err = fmt.Errorf("lexer: #precedes %s", token.text)
+		}
+	default:
+		token, err = Token{kind: Error}, fmt.Errorf("lexer: # precede %s", string(r))
+	}
+	return token, err
 }
 
 // ReadToken return Token structure
@@ -150,16 +179,20 @@ func (lx *Lexer) ReadToken() (Token, error) {
 	if err = lx.SkipSpaces(); err != nil {
 		return Token{kind: EOF}, err
 	}
-	r, _, _ := lx.ReadRune()
+	// SkipSpaces guarantee rune existence
+	r, _, _ := lx.reader.ReadRune()
 
 	switch {
 	case unicode.IsDigit(r):
-		lx.UnreadRune()
+		lx.reader.UnreadRune()
 		token, err = lx.ReadNumber()
 	case IsIdentHead(r):
-		token, err = lx.ReadIdent(r)
+		lx.reader.UnreadRune()
+		token, err = lx.ReadIdent()
 	case r == '.':
 		token, err = lx.ReadDot()
+	case r == '#':
+		token, err = lx.ReadSharp()
 	case r == '+' || r == '-':
 		token = Token{kind: Ident, text: string(r)}
 	case r == '(':
@@ -173,51 +206,38 @@ func (lx *Lexer) ReadToken() (Token, error) {
 	default:
 		token = Token{kind: Error, text: string(r)}
 	}
+	lx.token = token
 	return token, err
 }
 
-func repl() {
-	reader := bufio.NewReader(os.Stdin)
+// return token slice
+func (lx *Lexer) ReadTokens() ([]Token, error) {
+	var tokens []Token
 	for {
-		fmt.Print("lispy> ")
-		line, _, _ := reader.ReadLine()
-		lx := Lexer{strings.NewReader(string(line))}
-		token, _ := lx.ReadToken()
-
-		for {
-			fmt.Println(token)
-			// EOF
-			if token.kind == Error {
-				fmt.Fprintf(os.Stderr, "Illegal token: %s\n", token.text)
-				break
-			}
-			if token.kind == EOF {
-				break
-			}
-			token, _ = lx.ReadToken()
+		token, err := lx.ReadToken()
+		if err != nil {
+			return append(tokens, token), err
+		} else if token.kind == Error {
+			return append(tokens, token), err
 		}
-		fmt.Println("")
+		tokens = append(tokens, token)
 	}
 }
 
-func main() {
-	fp, err := os.Open("./test.scm")
+// set Lexer's reader
+func (lx *Lexer) SetFile(name string) {
+	fp, err := os.Open(name)
 	if err != nil {
 		panic(err)
 	}
-	reader := bufio.NewReader(fp)
-	lx := Lexer{reader}
-	token, err := lx.ReadToken()
-	for {
-		fmt.Println(token)
-		// EOF
-		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
-			break
-		} else if token.kind == Error {
-			fmt.Fprintf(os.Stderr, "Illegal token: %s\n", token.text)
-			break
-		}
-		token, err = lx.ReadToken()
-	}
+	lx.reader = bufio.NewReader(fp)
+}
+
+// set Lexer's reader
+func (lx *Lexer) SetString(s string) {
+	lx.reader = strings.NewReader(s)
+}
+
+func (lx *Lexer) Token() Token {
+	return lx.token
 }
