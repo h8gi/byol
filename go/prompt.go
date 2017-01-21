@@ -22,13 +22,18 @@ func main() {
 			break
 		}
 		lx.SetString(line)
-		tokens, err := lx.ReadTokens()
-		// display innput
-		for i, token := range tokens {
-			fmt.Print(i, token, "\n")
-			if token.Text() == "quit" {
-				return
-			}
+		// tokens, err := lx.ReadTokens()
+		// // display innput
+		// for i, token := range tokens {
+		// 	fmt.Print(i, token, "\n")
+		// 	if token.Text() == "quit" {
+		// 		return
+		// 	}
+		// }
+		p := lispy.Parser{}
+		p.SetLexer(&lx)
+		if err := p.Lispy(); err != nil {
+			fmt.Println(err.Error())
 		}
 	}
 }
