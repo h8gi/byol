@@ -6,6 +6,18 @@ import (
 	"github.com/chzyer/readline"
 )
 
+func display(lx *lispy.Lexer, line string) {
+	lx.SetString(line)
+	tokens, _ := lx.ReadTokens()
+	// display innput
+	for i, token := range tokens {
+		fmt.Print(i, token, "\n")
+		if token.Text == "quit" {
+			return
+		}
+	}
+}
+
 func main() {
 	// Print version
 	fmt.Println("Lispy Version 0.0.0.0.1")
@@ -21,19 +33,14 @@ func main() {
 		if err != nil {
 			break
 		}
+		display(&lx, line)
 		lx.SetString(line)
-		// tokens, err := lx.ReadTokens()
-		// // display innput
-		// for i, token := range tokens {
-		// 	fmt.Print(i, token, "\n")
-		// 	if token.Text() == "quit" {
-		// 		return
-		// 	}
-		// }
-		p := lispy.Parser{}
-		p.SetLexer(&lx)
-		if err := p.Lispy(); err != nil {
+		lx.ReadToken()
+		ast, err := lx.Datum()
+		if err != nil {
 			fmt.Println(err.Error())
+			continue
 		}
+		fmt.Println(ast)
 	}
 }
