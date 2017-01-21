@@ -26,6 +26,9 @@ func main() {
 		// display innput
 		for i, token := range tokens {
 			fmt.Print(i, token, "\n")
+			if token.Text() == "quit" {
+				return
+			}
 		}
 	}
 }
