@@ -34,12 +34,12 @@ func repl() {
 			break
 		}
 		display(&p, line)
-		ast, err := p.ParseString(line)
+		list, err := p.ParseString(line)
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
 		}
-		fmt.Println(ast)
+		fmt.Println(list)
 	}
 }
 
