@@ -6,16 +6,18 @@ import (
 	"github.com/chzyer/readline"
 )
 
-func display(lx *lispy.Parser, line string) {
-	lx.SetString(line)
-	tokens, _ := lx.ReadTokens()
+func display(p *lispy.Parser, line string) {
+	p.SetString(line)
+	tokens, _ := p.ReadTokens()
 	// display innput
+	fmt.Println("Lexer------------")
 	for i, token := range tokens {
-		fmt.Print(i, token, "\n")
+		fmt.Printf("%d: %+v\n", i, token)
 		if token.Text == "quit" {
 			return
 		}
 	}
+	fmt.Println("------------Lexer")
 }
 
 func repl() {
@@ -41,12 +43,16 @@ func repl() {
 	}
 }
 
-func main() {
-	// Print version
+func filetest() {
 	p := lispy.Parser{}
 	ast, err := p.ParseFile("test.scm")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	fmt.Println(ast)
+}
+
+func main() {
+	// Print version
+	repl()
 }
