@@ -6,7 +6,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-func display(lx *lispy.Lexer, line string) {
+func display(lx *lispy.Parser, line string) {
 	lx.SetString(line)
 	tokens, _ := lx.ReadTokens()
 	// display innput
@@ -18,29 +18,35 @@ func display(lx *lispy.Lexer, line string) {
 	}
 }
 
-func main() {
-	// Print version
+func repl() {
 	fmt.Println("Lispy Version 0.0.0.0.1")
 	fmt.Println("Press Ctrl+c to Exit")
 	rl, err := readline.New("lispy> ")
 	if err != nil {
 		panic(err)
 	}
-	lx := lispy.Lexer{}
-
+	p := lispy.Parser{}
 	for {
 		line, err := rl.Readline()
 		if err != nil {
 			break
 		}
-		display(&lx, line)
-		lx.SetString(line)
-		lx.ReadToken()
-		ast, err := lx.Datum()
+		display(&p, line)
+		ast, err := p.ParseString(line)
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
 		}
 		fmt.Println(ast)
 	}
+}
+
+func main() {
+	// Print version
+	p := lispy.Parser{}
+	ast, err := p.ParseFile("test.scm")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println(ast)
 }
