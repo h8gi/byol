@@ -42,8 +42,8 @@ func repl() {
 		for _, ast := range program {
 			fmt.Println(ast)
 		}
-		obj, env := lispy.EvalProgram(program, lispy.Environment{})
-		fmt.Printf("%v, %v\n", obj, env)
+		obj, err := lispy.EvalProgram(program)
+		fmt.Printf("%v\n", obj)
 	}
 }
 
