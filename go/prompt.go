@@ -39,7 +39,9 @@ func repl() {
 			fmt.Println(err.Error())
 			continue
 		}
-		fmt.Println(list)
+		for _, ast := range list {
+			fmt.Println(ast)
+		}
 	}
 }
 
