@@ -34,14 +34,16 @@ func repl() {
 			break
 		}
 		display(&p, line)
-		list, err := p.ParseString(line)
+		program, err := p.ParseString(line)
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
 		}
-		for _, ast := range list {
+		for _, ast := range program {
 			fmt.Println(ast)
 		}
+		obj, env := lispy.EvalProgram(program, lispy.Environment{})
+		fmt.Printf("%v, %v\n", obj, env)
 	}
 }
 
