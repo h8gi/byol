@@ -43,7 +43,11 @@ func repl() {
 			fmt.Println(ast)
 		}
 		obj, err := lispy.EvalProgram(program)
-		fmt.Printf("%v\n", obj)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
+		fmt.Printf("result> %v\n", obj)
 	}
 }
 
