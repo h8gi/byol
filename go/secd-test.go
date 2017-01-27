@@ -6,14 +6,16 @@ import (
 )
 
 func main() {
-	p := &lispy.Parser{}
-	program, _ := p.ParseString("(a b c) 5")
-	obj := program[0]
-	fmt.Println(obj)
-	obj.Pop()
-	fmt.Println(obj)
-	obj.Push(obj)
-	fmt.Println(obj)
-	car, _ := obj.Pop()
-	fmt.Println(obj, car)
+	syma, _ := lispy.NewSymbol("A")
+	symb, _ := lispy.NewSymbol("B")
+	env := lispy.NewEnv()
+	env.Define(syma, symb)
+	env.Define(symb, syma)
+	env.Define(symb, symb)
+	fmt.Println(env)
+	result, err := env.LookUp(syma)
+	fmt.Println(result, err)
+	result, err = env.LookUp(symb)
+	fmt.Println(result, err)
+	fmt.Println(lispy.InitialEnv())
 }
