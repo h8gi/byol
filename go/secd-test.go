@@ -6,5 +6,14 @@ import (
 )
 
 func main() {
-	fmt.Print(lispy.Stack{lispy.LObj{Type: lispy.Boolean, Value: false}})
+	p := &lispy.Parser{}
+	program, _ := p.ParseString("(a b c) 5")
+	obj := program[0]
+	fmt.Println(obj)
+	obj.Pop()
+	fmt.Println(obj)
+	obj.Push(obj)
+	fmt.Println(obj)
+	car, _ := obj.Pop()
+	fmt.Println(obj, car)
 }

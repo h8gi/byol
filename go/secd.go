@@ -44,7 +44,7 @@ type Secd struct {
 	Dump        interface{}
 }
 
-func (secd *Secd) Nil() {
+func (secd *Secd) Null() {
 	secd.Stack.Push(LObj{Type: Boolean, Value: false})
 }
 
